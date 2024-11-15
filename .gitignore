@@ -1,0 +1,16 @@
+# Ignore everything:
+*
+
+# Do not ignore these files:
+poly1305/*.c
+poly1305/*.h
+poly1305/Makefile
+
+chacha20/Makefile
+chacha20/*.c
+chacha20/*.h
+chacha20/*.s
+
+ecdh25519/Makefile
+ecdh25519/*.c
+ecdh25519/*.h
