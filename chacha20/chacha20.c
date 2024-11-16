@@ -17,10 +17,11 @@ extern void crypto_core_chacha20(
   const unsigned char *k,
   const unsigned char *c
 );
+extern int crypto_stream_chacha20_asm(unsigned char *c, unsigned long long clen, const unsigned char *n, const unsigned char *k);
 
 static const unsigned char sigma[16] = "expand 32-byte k";
 
-int crypto_stream_chacha20(unsigned char *c,unsigned long long clen, const unsigned char *n, const unsigned char *k)
+int crypto_stream_chacha20(unsigned char *c, unsigned long long clen, const unsigned char *n, const unsigned char *k)
 {
   unsigned char in[16];
   unsigned char block[64];
