@@ -3,6 +3,7 @@
 .global crypto_core_chacha20_asm
 
 .extern send_USART_str
+.extern send_USART_bytes
 
 .section .data
 test_output:
@@ -84,112 +85,127 @@ test_output:
     # indices 12 to 15 -> *in
     # store everything directly on stack ("local variables")
 
-    # loading *c
-    ldm r3, {r4-r7}
-    stmfd sp!, {r4-r7}
+    /* NOTE: we push in reverse order to make indexing easier later on... */
+    # loading *in
+    ldm r1, {r4-r7}
+    stmfd sp!, {r4-r5}
+    stmfd sp!, {r6-r7}
     # loading *k
     ldm r2, {r4-r11}
     stmfd sp!, {r4-r11}
-    # loading *in
-    ldm r1, {r4-r7}
+    # loading *c
+    ldm r3, {r4-r7}
     stmfd sp!, {r4-r7}
+
+    # provjeri lokalne varijable
+    /*
+    push {r0, r1}
+
+    add r0, sp, #(2*4)
+
+    mov r1, #(16*4)
+
+    bl send_USART_bytes
+
+    pop {r0, r1}
+    */
 
     # do 20 rounds
     mov r12, #10 /* 10 double rounds */
   rounds_loop:
     # quarterround(&x0, &x4, &x8,&x12);
     # quarterround(&x1, &x5, &x9,&x13);
-    ldr r4 , [sp, #(15*4)]
-    ldr r5 , [sp, #(15*4 - 4 * 4)]
-    ldr r6 , [sp, #(15*4 - 8 * 4)]
-    ldr r7 , [sp, #(15*4 - 12 * 4)]
-    ldr r8 , [sp, #(15*4 - 1 * 4)]
-    ldr r9 , [sp, #(15*4 - 5 * 4)]
-    ldr r10, [sp, #(15*4 - 9 * 4)]
-    ldr r11, [sp, #(15*4 - 13 * 4)]
+    ldr r4 , [sp]
+    ldr r5 , [sp, #(4 * 4)]
+    ldr r6 , [sp, #(8 * 4)]
+    ldr r7 , [sp, #(12 * 4)]
+    ldr r8 , [sp, #(1 * 4)]
+    ldr r9 , [sp, #(5 * 4)]
+    ldr r10, [sp, #(9 * 4)]
+    ldr r11, [sp, #(13 * 4)]
 
     QUATERROUND_CALCULATION r4 r5 r6 r7
     QUATERROUND_CALCULATION r8 r9 r10 r11
 
-    str r4 , [sp, #(15*4)]
-    str r5 , [sp, #(15*4 - 4 * 4)]
-    str r6 , [sp, #(15*4 - 8 * 4)]
-    str r7 , [sp, #(15*4 - 12 * 4)]
-    str r8 , [sp, #(15*4 - 1 * 4)]
-    str r9 , [sp, #(15*4 - 5 * 4)]
-    str r10, [sp, #(15*4 - 9 * 4)]
-    str r11, [sp, #(15*4 - 13 * 4)]
+    str r4 , [sp]
+    str r5 , [sp, #(4 * 4)]
+    str r6 , [sp, #(8 * 4)]
+    str r7 , [sp, #(12 * 4)]
+    str r8 , [sp, #(1 * 4)]
+    str r9 , [sp, #(5 * 4)]
+    str r10, [sp, #(9 * 4)]
+    str r11, [sp, #(13 * 4)]
 
     # quarterround(&x2, &x6,&x10,&x14);
     # quarterround(&x3, &x7,&x11,&x15);
 
-    ldr r4 , [sp, #(15*4 - 2 * 4)]
-    ldr r5 , [sp, #(15*4 - 6 * 4)]
-    ldr r6 , [sp, #(15*4 - 10 * 4)]
-    ldr r7 , [sp, #(15*4 - 14 * 4)]
-    ldr r8 , [sp, #(15*4 - 3 * 4)]
-    ldr r9 , [sp, #(15*4 - 7 * 4)]
-    ldr r10, [sp, #(15*4 - 11 * 4)]
-    ldr r11, [sp, #(15*4 - 15 * 4)]
+    ldr r4 , [sp, #(2 * 4)]
+    ldr r5 , [sp, #(6 * 4)]
+    ldr r6 , [sp, #(10 * 4)]
+    ldr r7 , [sp, #(14 * 4)]
+    ldr r8 , [sp, #(3 * 4)]
+    ldr r9 , [sp, #(7 * 4)]
+    ldr r10, [sp, #(11 * 4)]
+    ldr r11, [sp, #(15 * 4)]
 
     QUATERROUND_CALCULATION r4 r5 r6 r7
     QUATERROUND_CALCULATION r8 r9 r10 r11
 
-    str r4 , [sp, #(15*4 - 2 * 4)]
-    str r5 , [sp, #(15*4 - 6 * 4)]
-    str r6 , [sp, #(15*4 - 10 * 4)]
-    str r7 , [sp, #(15*4 - 14 * 4)]
-    str r8 , [sp, #(15*4 - 3 * 4)]
-    str r9 , [sp, #(15*4 - 7 * 4)]
-    str r10, [sp, #(15*4 - 11 * 4)]
-    str r11, [sp, #(15*4 - 15 * 4)]
+    str r4 , [sp, #(2 * 4)]
+    str r5 , [sp, #(6 * 4)]
+    str r6 , [sp, #(10 * 4)]
+    str r7 , [sp, #(14 * 4)]
+    str r8 , [sp, #(3 * 4)]
+    str r9 , [sp, #(7 * 4)]
+    str r10, [sp, #(11 * 4)]
+    str r11, [sp, #(15 * 4)]
 
     # quarterround(&x0, &x5,&x10,&x15);
     # quarterround(&x1, &x6,&x11,&x12);
-    ldr r4 , [sp, #(15*4)]
-    ldr r5 , [sp, #(15*4 - 5 * 4)]
-    ldr r6 , [sp, #(15*4 - 10 * 4)]
-    ldr r7 , [sp, #(15*4 - 15 * 4)]
-    ldr r8 , [sp, #(15*4 - 1 * 4)]
-    ldr r9 , [sp, #(15*4 - 6 * 4)]
-    ldr r10, [sp, #(15*4 - 11 * 4)]
-    ldr r11, [sp, #(15*4 - 12 * 4)]
+    ldr r4 , [sp]
+    ldr r5 , [sp, #(5 * 4)]
+    ldr r6 , [sp, #(10 * 4)]
+    ldr r7 , [sp, #(15 * 4)]
+    ldr r8 , [sp, #(1 * 4)]
+    ldr r9 , [sp, #(6 * 4)]
+    ldr r10, [sp, #(11 * 4)]
+    ldr r11, [sp, #(12 * 4)]
 
     QUATERROUND_CALCULATION r4 r5 r6 r7
     QUATERROUND_CALCULATION r8 r9 r10 r11
 
-    str r4 , [sp, #(15*4)]
-    str r5 , [sp, #(15*4 - 5 * 4)]
-    str r6 , [sp, #(15*4 - 10 * 4)]
-    str r7 , [sp, #(15*4 - 15 * 4)]
-    str r8 , [sp, #(15*4 - 1 * 4)]
-    str r9 , [sp, #(15*4 - 6 * 4)]
-    str r10, [sp, #(15*4 - 11 * 4)]
-    str r11, [sp, #(15*4 - 12 * 4)]
+    str r4 , [sp]
+    str r5 , [sp, #(5 * 4)]
+    str r6 , [sp, #(10 * 4)]
+    str r7 , [sp, #(15 * 4)]
+    str r8 , [sp, #(1 * 4)]
+    str r9 , [sp, #(6 * 4)]
+    str r10, [sp, #(11 * 4)]
+    str r11, [sp, #(12 * 4)]
 
     # quarterround(&x2, &x7, &x8,&x13);
     # quarterround(&x3, &x4, &x9,&x14);
 
-    ldr r4 , [sp, #(15*4 - 2 * 4)]
-    ldr r5 , [sp, #(15*4 - 7 * 4)]
-    ldr r6 , [sp, #(15*4 - 8 * 4)]
-    ldr r7 , [sp, #(15*4 - 13 * 4)]
-    ldr r8 , [sp, #(15*4 - 3 * 4)]
-    ldr r9 , [sp, #(15*4 - 4 * 4)]
-    ldr r10, [sp, #(15*4 - 9 * 4)]
-    ldr r11, [sp, #(15*4 - 14 * 4)]
+    ldr r4 , [sp, #(2 * 4)]
+    ldr r5 , [sp, #(7 * 4)]
+    ldr r6 , [sp, #(8 * 4)]
+    ldr r7 , [sp, #(13 * 4)]
+    ldr r8 , [sp, #(3 * 4)]
+    ldr r9 , [sp, #(4 * 4)]
+    ldr r10, [sp, #(9 * 4)]
+    ldr r11, [sp, #(14 * 4)]
 
     QUATERROUND_CALCULATION r4 r5 r6 r7
     QUATERROUND_CALCULATION r8 r9 r10 r11
 
-    str r4 , [sp, #(15*4 - 2 * 4)]
-    str r5 , [sp, #(15*4 - 7 * 4)]
-    str r6 , [sp, #(15*4 - 8 * 4)]
-    str r7 , [sp, #(15*4 - 13 * 4)]
-    str r8 , [sp, #(15*4 - 3 * 4)]
-    str r9 , [sp, #(15*4 - 4 * 4)]
-    str r10, [sp, #(15*4 - 9 * 4)]
-    str r11, [sp, #(15*4 - 14 * 4)]
+    str r4 , [sp, #(2 * 4)]
+    str r5 , [sp, #(7 * 4)]
+    str r6 , [sp, #(8 * 4)]
+    str r7 , [sp, #(13 * 4)]
+    str r8 , [sp, #(3 * 4)]
+    str r9 , [sp, #(4 * 4)]
+    str r10, [sp, #(9 * 4)]
+    str r11, [sp, #(14 * 4)]
 
     subs r12, r12, #1
 
@@ -205,8 +221,6 @@ test_output:
     # indices 4 to 11 -> *k (r2)
     # indices 12 to 15 -> *in (r1)
 
-    add sp, sp, #(16*4)
-
     # 0 to 3
     ldmfd sp, {r4-r7}
     ldm r3, {r8-r11}
@@ -217,7 +231,7 @@ test_output:
     stm r0, {r4-r7}
 
     # 4 to 7
-    sub sp, sp, #(4*4)
+    add sp, sp, #(4*4)
     add r0, r0, #(4*4)
 
     ldmfd sp, {r4-r7}
@@ -230,7 +244,7 @@ test_output:
     stm r0, {r4-r7}
 
     # 8 to 11
-    sub sp, sp, #(4*4)
+    add sp, sp, #(4*4)
     add r0, r0, #(4*4)
 
     ldmfd sp, {r4-r7}
@@ -242,18 +256,18 @@ test_output:
     stm r0, {r4-r7}
 
     # 12 to 15
-    sub sp, sp, #(4*4)
+    add sp, sp, #(4*4)
     add r0, r0, #(4*4)
 
     ldmfd sp, {r4-r7}
     ldm r1, {r8-r11}
-    add r4, r4, r8
-    add r5, r5, r9
-    add r6, r6, r10
-    add r7, r7, r11
+    add r4, r4, r10
+    add r5, r5, r11
+    add r6, r6, r8
+    add r7, r7, r9
     stm r0, {r4-r7}
     
-    add sp, sp, #(12*4)
+    add sp, sp, #(4*4)
     # restore registers and return
     ldmfd sp!, {r4-r11, lr}
     bx lr

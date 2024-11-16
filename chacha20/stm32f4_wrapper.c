@@ -1,4 +1,5 @@
 #include "../common/stm32wrapper.h"
+#include <stdio.h>
 
 /* 24 MHz */
 const struct rcc_clock_scale benchmarkclock = {
@@ -144,8 +145,13 @@ void send_USART_str(const unsigned char* in)
 void send_USART_bytes(const unsigned char* in, int n)
 {
     int i;
+    char out[2];
     for(i = 0; i < n; i++) {
-        usart_send_blocking(USART2, in[i]);
+        sprintf(out, "%x", in[i]);
+
+        usart_send_blocking(USART2, out[0]);
+        usart_send_blocking(USART2, out[1]);
+        usart_send_blocking(USART2, ' ');
     }
 }
 
