@@ -163,19 +163,6 @@
     ldm r3, {r4-r7}
     stmfd sp!, {r4-r7}
 
-    # provjeri lokalne varijable
-    /*
-    push {r0, r1}
-
-    add r0, sp, #(2*4)
-
-    mov r1, #(16*4)
-
-    bl send_USART_bytes
-
-    pop {r0, r1}
-    */
-
     # do 20 rounds
     ONE_DOUBLEROUND
     ONE_DOUBLEROUND
@@ -247,70 +234,4 @@
     add sp, sp, #(4*4)
     # restore registers and return
     ldmfd sp!, {r4-r11, lr}
-    bx lr
-
-  crypto_stream_chacha20_asm:
-    stmfd sp!, {r4-r7, lr}
-    # r0 - unsigned char *c (output vector)
-    # r1 - unsigned long long clen (desired output length)
-    # r2 - const unsigned char *n (init vector)
-    # r3 - const unsigned char *k (cryptographic key)
-
-    mov r4, r1 /* move clen to r4 register */
-
-    sub sp, sp, #(16*4)
-    mov r1, sp /* move bottom of stack to r1 for *in */
-    # move *n to r1 and initialize that
-    ldm r2, {r6-r7}
-    stm r1, {r6-r7}
-    mov r6, #0
-    mov r7, #0
-    add r5, r1, #8 /* r5 <- in + 8 */
-    stm r1, {r6-r7}
-
-    mov r2, r3 /* get *k to r2 */
-    ldr r3, sigma /* set up r3 with *c */
-
-    while_loop:
-      # call core function
-      bl crypto_core_chacha20
-
-      # update init vector (counter)
-      ldm r5, {r6-r7}
-      add r6, r6, #1
-      addcs r7, r7, #0 /* add with carry just in case */
-      stm r5, {r6-r7}
-
-      # regular loop stuff
-      add r0, r0, #64
-      sub r4, r4, #64
-      cmp r4, #64
-      bge while_loop
-    
-    cmp r4, #0
-    beq return
-
-    # encrypt another block
-    # make local variable for last block since we don't have enough buffer space
-    sub sp, sp, #(16*4)
-    push {r0}
-    
-    add r0, sp, #4 /* bottom of stack before pushing old r0 */
-    # r1, r2 and r3 should be set up correctly
-    bl crypto_core_chacha20
-    
-    mov r6, r0
-    pop {r0}
-
-    # copy memory from local var (in r6) to correct output
-    copy_loop:
-      subs r4, r4, #1
-      bgt copy_loop
-
-    add sp, sp, #(16*4)
-
-    return:
-    # restore registers and return
-    add sp, sp, #(16*4)
-    ldmfd sp!, {r4-r7, lr}
     bx lr

@@ -17,7 +17,6 @@ extern void crypto_core_chacha20(
   const unsigned char *k,
   const unsigned char *c
 );
-extern int crypto_stream_chacha20_asm(unsigned char *c, unsigned long long clen, const unsigned char *n, const unsigned char *k);
 
 static const unsigned char sigma[16] = "expand 32-byte k";
 
@@ -31,17 +30,14 @@ int crypto_stream_chacha20(unsigned char *c, unsigned long long clen, const unsi
   if (!clen) return 0;
 
   for (i = 0;i < 8;++i) in[i] = n[i];
-  for (i = 8;i < 16;++i) in[i] = 0;
+  *((uint32 *)(in + 8)) = 0;
+  *((uint32 *)(in + 12)) = 0;
 
   while (clen >= 64) {
     crypto_core_chacha20(c,in,k,sigma);
 
-    u = 1;
-    for (i = 8;i < 16;++i) {
-      u += (unsigned int) in[i];
-      in[i] = u;
-      u >>= 8;
-    }
+    // increment counter
+    (*((uint64_t *)(in + 8)))++;
 
     clen -= 64;
     c += 64;
