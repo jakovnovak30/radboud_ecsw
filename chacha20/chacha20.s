@@ -1,6 +1,5 @@
 .syntax unified
-.global quarterround_asm
-.global crypto_core_chacha20_asm
+.global crypto_core_chacha20
 
 .extern send_USART_str
 .extern send_USART_bytes
@@ -38,38 +37,8 @@ test_output:
     ror \reg2, \reg2, #(32 - 7)
     ror \reg4, \reg4, #(32 - 8)
   .endm
-  
-  # testing function... TODO: delete after main function starts working
-  quarterround_asm:
-    # arguments in registers: r0, r1, r2, r3
-    # no return value
 
-    # save registers
-    stmfd sp!, {r4-r7}
-
-    # use registers r4, r5, r6, r7 for dereferenced values
-    ldr r4, [r0]
-    ldr r5, [r1]
-    ldr r6, [r2]
-    ldr r7, [r3]
-
-    # actual calculations:
-    # ====================
-    QUATERROUND_CALCULATION r4 r5 r6 r7
-    # ===================
-
-    # save result back to *r0, *r1, *r2, *r3
-    str r4, [r0]
-    str r5, [r1]
-    str r6, [r2]
-    str r7, [r3]
-
-    # restore registers
-    ldmfd sp!, {r4-r7}
-
-    bx lr
-
-  crypto_core_chacha20_asm:
+  crypto_core_chacha20:
     # arguments:
     # unsigned char *out      - r0
     # const unsigned char *in - r1
