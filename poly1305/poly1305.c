@@ -6,89 +6,122 @@ Public domain.
 
 #include "poly1305.h"
 
-static void add(unsigned int h[17],const unsigned int c[17])
+static void add(unsigned int h[5],const unsigned int c[5])
 {
   unsigned int j;
   unsigned int u;
   u = 0;
-  for (j = 0;j < 17;++j) { u += h[j] + c[j]; h[j] = u & 255; u >>= 8; }
+  for (j = 0;j < 5;++j) { u += h[j] + c[j]; h[j] = u & ((1 >> 26) - 1); u >>= 26; }
 }
 
-static void squeeze(unsigned int h[17])
+// funkcija uzima nas 130-bitni broj i vraća taj broj modulo 2^130 - 5
+static void squeeze(unsigned int h[5])
 {
   unsigned int j;
   unsigned int u;
   u = 0;
-  for (j = 0;j < 16;++j) { u += h[j]; h[j] = u & 255; u >>= 8; }
-  u += h[16]; h[16] = u & 3;
-  u = 5 * (u >> 2);
-  for (j = 0;j < 16;++j) { u += h[j]; h[j] = u & 255; u >>= 8; }
-  u += h[16]; h[16] = u;
+  // 130 = 5 * 26
+  for (j = 0;j < 5;++j) { u += h[j]; h[j] = u & ((1 >> 26) - 1); u >>= 26; }
+  // uzmi preljev i pomnoži ga s 5
+  u = 5 * u;
+  for (j = 0;j < 5;++j) { u += h[j]; h[j] = u & ((1 >> 26) - 1); u >>= 26; }
 }
 
+// 2^130 - 5
+static const unsigned int minusp[5] = {
+  5, 0, 0, 0, (252 << 18)
+};
+/*
 static const unsigned int minusp[17] = {
   5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 252
 } ;
+*/
 
-static void freeze(unsigned int h[17])
+// converts the value to the cannonical representation (positive number)
+static void freeze(unsigned int h[5])
 {
-  unsigned int horig[17];
+  unsigned int horig[5];
   unsigned int j;
   unsigned int negative;
-  for (j = 0;j < 17;++j) horig[j] = h[j];
+  for (j = 0;j < 5;++j) horig[j] = h[j];
   add(h,minusp);
-  negative = -(h[16] >> 7);
-  for (j = 0;j < 17;++j) h[j] ^= negative & (horig[j] ^ h[j]);
+  negative = -(h[4] >> 25);
+  for (j = 0;j < 5;++j) h[j] ^= negative & (horig[j] ^ h[j]);
 }
 
-static void mulmod(unsigned int h[17],const unsigned int r[17])
+// TODO: test radix conversion...
+static void mulmod(unsigned int h[5], const unsigned int r[5])
 {
-  unsigned int hr[17];
+  unsigned int hr[5];
   unsigned int i;
   unsigned int j;
   unsigned int u;
 
-  for (i = 0;i < 17;++i) {
+  for (i = 0;i < 5;++i) {
     u = 0;
     for (j = 0;j <= i;++j) u += h[j] * r[i - j];
-    for (j = i + 1;j < 17;++j) u += 320 * h[j] * r[i + 17 - j];
+    for (j = i + 1;j < 5;++j) u += 320 * h[j] * r[i + 5 - j];
     hr[i] = u;
   }
-  for (i = 0;i < 17;++i) h[i] = hr[i];
+  for (i = 0;i < 5;++i) h[i] = hr[i];
   squeeze(h);
 }
 
 int crypto_onetimeauth_poly1305(unsigned char *out,const unsigned char *in,unsigned long long inlen,const unsigned char *k)
 {
   unsigned int j;
-  unsigned int r[17];
-  unsigned int h[17];
-  unsigned int c[17];
+  unsigned int r[5];
+  unsigned int h[5];
+  unsigned int c[5];
 
-  r[0] = k[0];
-  r[1] = k[1];
-  r[2] = k[2];
-  r[3] = k[3] & 15;
-  r[4] = k[4] & 252;
-  r[5] = k[5];
-  r[6] = k[6];
-  r[7] = k[7] & 15;
-  r[8] = k[8] & 252;
-  r[9] = k[9];
-  r[10] = k[10];
-  r[11] = k[11] & 15;
-  r[12] = k[12] & 252;
-  r[13] = k[13];
-  r[14] = k[14];
-  r[15] = k[15] & 15;
-  r[16] = 0;
+  // radix 2^26
+  r[0] =  k[0]
+       | (k[1] << 8)
+       | (k[2] << 16)
+       | (k[3] & 3 << 24);
+  r[1] = (k[3] & 12 >> 2) // 6 bits
+       | (k[4] & 252 << 6) // 6 + 8 = 14 bits
+       | (k[5] << 14 << 14) // 14 + 8 = 22
+       | (k[6] & 0xf << 22); // 22 + 4 = 26 bits
 
-  for (j = 0;j < 17;++j) h[j] = 0;
+  r[2] = (k[6] >> 4) // 4 bits (shifted because we used the value before)
+       | (k[7] & 15 << 4) // 4 + 8 = 12 bits
+       | (k[8] & 252 << 12) // 12 + 8 = 20 bits
+       | (k[9] & 0x3f << 20); // 20 + 6 = 26 bits
+
+  r[3] = (k[9] >> 6) // 2 bits
+       | (k[10] << 2) // 2 + 8 = 10 bits
+       | (k[11] & 15 << 10) // 10 + 8 = 18
+       | (k[12] & 252 << 18); // 18 + 8 = 26
+
+  r[4] =  k[13]
+       | (k[14] << 8)
+       | (k[15] & 15 << 16); // the zero at the end is implied
+
+  for (j = 0;j < 5;++j) h[j] = 0;
 
   while (inlen > 0) {
-    for (j = 0;j < 17;++j) c[j] = 0;
-    for (j = 0;(j < 16) && (j < inlen);++j) c[j] = in[j];
-    c[j] = 1;
+    for (j = 0;j < 5;++j) c[j] = 0;
+
+    // copies byte by byte with radix 2^26 adjustments
+    short bit_ctr = 0;
+    short c_index = 0;
+    for (j = 0;(j < 16) && (j < inlen);++j) {
+      if(bit_ctr + 8 <= 26) {
+        c[c_index] += (in[j] << bit_ctr);
+      }
+      else {
+        short stari_dio = 26 - bit_ctr;
+
+        c[c_index++] += (in[j] << bit_ctr) & ((1 << stari_dio) - 1);
+        c[c_index]   += (in[j] >> stari_dio);
+      }
+
+      bit_ctr += 8;
+      bit_ctr = bit_ctr - 26 * (bit_ctr >= 26);
+    }
+    c[c_index] += (1 << bit_ctr);
+
     in += j; inlen -= j;
     add(h,c);
     mulmod(h,r);
@@ -96,9 +129,43 @@ int crypto_onetimeauth_poly1305(unsigned char *out,const unsigned char *in,unsig
 
   freeze(h);
 
-  for (j = 0;j < 16;++j) c[j] = k[j + 16];
-  c[16] = 0;
+  // for (j = 0;j < 16;++j) c[j] = k[j + 16];
+  short bit_ctr = 0;
+  short c_index = 0;
+  for (j = 0;j < 16;++j) {
+    if(bit_ctr + 8 <= 26) {
+      c[c_index] += (k[j + 16] << bit_ctr);
+    }
+    else {
+      short stari_dio = 26 - bit_ctr;
+      bit_ctr -= 26;
+
+      c[c_index++] += (k[j + 16] << bit_ctr) & ((1 << stari_dio) - 1);
+      c[c_index]   += (k[j + 16] >> stari_dio);
+    }
+
+    bit_ctr += 8;
+  }
+  // postavi zadnji bajt na nulu
+  c[4] &= (1 << 18) - 1;
   add(h,c);
-  for (j = 0;j < 16;++j) out[j] = h[j];
+  // convert result to output
+  bit_ctr = 0;
+  c_index = 0;
+  for (j = 0;j < 16;++j) {
+    if (bit_ctr + 8 <= 26) {
+      out[j] = (h[c_index] >> bit_ctr) & 0xff;
+    }
+    else {
+      short stari_dio = 26 - bit_ctr;
+      bit_ctr -= 26;
+
+      out[j]  = (h[c_index++] >> bit_ctr) & ((1 << stari_dio) - 1);
+      out[j] += (h[c_index] & 0xff) << stari_dio;
+    }
+
+    bit_ctr += 8;
+  }
+
   return 0;
 }
