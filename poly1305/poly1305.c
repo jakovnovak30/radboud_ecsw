@@ -11,7 +11,7 @@ static void add(unsigned int h[5],const unsigned int c[5])
   unsigned int j;
   unsigned int u;
   u = 0;
-  for (j = 0;j < 5;++j) { u += h[j] + c[j]; h[j] = u & ((1 >> 26) - 1); u >>= 26; }
+  for (j = 0;j < 5;++j) { u += h[j] + c[j]; h[j] = u & ((1 << 26) - 1); u >>= 26; }
 }
 
 // funkcija uzima nas 130-bitni broj i vraća taj broj modulo 2^130 - 5
@@ -21,10 +21,10 @@ static void squeeze(unsigned int h[5])
   unsigned int u;
   u = 0;
   // 130 = 5 * 26
-  for (j = 0;j < 5;++j) { u += h[j]; h[j] = u & ((1 >> 26) - 1); u >>= 26; }
+  for (j = 0;j < 5;++j) { u += h[j]; h[j] = u & ((1 << 26) - 1); u >>= 26; }
   // uzmi preljev i pomnoži ga s 5
   u = 5 * u;
-  for (j = 0;j < 5;++j) { u += h[j]; h[j] = u & ((1 >> 26) - 1); u >>= 26; }
+  for (j = 0;j < 5;++j) { u += h[j]; h[j] = u & ((1 << 26) - 1); u >>= 26; }
 }
 
 // 2^130 - 5
@@ -60,7 +60,7 @@ static void mulmod(unsigned int h[5], const unsigned int r[5])
   for (i = 0;i < 5;++i) {
     u = 0;
     for (j = 0;j <= i;++j) u += h[j] * r[i - j];
-    for (j = i + 1;j < 5;++j) u += 320 * h[j] * r[i + 5 - j];
+    for (j = i + 1;j < 5;++j) u += h[j] * r[i + 5 - j];
     hr[i] = u;
   }
   for (i = 0;i < 5;++i) h[i] = hr[i];
@@ -78,25 +78,25 @@ int crypto_onetimeauth_poly1305(unsigned char *out,const unsigned char *in,unsig
   r[0] =  k[0]
        | (k[1] << 8)
        | (k[2] << 16)
-       | (k[3] & 3 << 24);
-  r[1] = (k[3] & 12 >> 2) // 6 bits
-       | (k[4] & 252 << 6) // 6 + 8 = 14 bits
-       | (k[5] << 14 << 14) // 14 + 8 = 22
-       | (k[6] & 0xf << 22); // 22 + 4 = 26 bits
+       | ((k[3] & 3  ) << 24);
+  r[1] = ((k[3] & 12 ) >> 2) // 6 bits
+       | ((k[4] & 252) << 6) // 6 + 8 = 14 bits
+       | (k[5] << 14) // 14 + 8 = 22
+       | ((k[6] & 0xf) << 22); // 22 + 4 = 26 bits
 
   r[2] = (k[6] >> 4) // 4 bits (shifted because we used the value before)
-       | (k[7] & 15 << 4) // 4 + 8 = 12 bits
-       | (k[8] & 252 << 12) // 12 + 8 = 20 bits
-       | (k[9] & 0x3f << 20); // 20 + 6 = 26 bits
+       | ((k[7] & 15  ) << 4) // 4 + 8 = 12 bits
+       | ((k[8] & 252 ) << 12) // 12 + 8 = 20 bits
+       | ((k[9] & 0x3f) << 20); // 20 + 6 = 26 bits
 
   r[3] = (k[9] >> 6) // 2 bits
        | (k[10] << 2) // 2 + 8 = 10 bits
-       | (k[11] & 15 << 10) // 10 + 8 = 18
-       | (k[12] & 252 << 18); // 18 + 8 = 26
+       | ((k[11] & 15 ) << 10) // 10 + 8 = 18
+       | ((k[12] & 252) << 18); // 18 + 8 = 26
 
   r[4] =  k[13]
        | (k[14] << 8)
-       | (k[15] & 15 << 16); // the zero at the end is implied
+       | ((k[15] & 15) << 16); // the zero at the end is implied
 
   for (j = 0;j < 5;++j) h[j] = 0;
 
@@ -117,8 +117,7 @@ int crypto_onetimeauth_poly1305(unsigned char *out,const unsigned char *in,unsig
         c[c_index]   += (in[j] >> stari_dio);
       }
 
-      bit_ctr += 8;
-      bit_ctr = bit_ctr - 26 * (bit_ctr >= 26);
+      bit_ctr = (bit_ctr + 8) % 26;
     }
     c[c_index] += (1 << bit_ctr);
 
@@ -158,13 +157,12 @@ int crypto_onetimeauth_poly1305(unsigned char *out,const unsigned char *in,unsig
     }
     else {
       short stari_dio = 26 - bit_ctr;
-      bit_ctr -= 26;
 
       out[j]  = (h[c_index++] >> bit_ctr) & ((1 << stari_dio) - 1);
       out[j] += (h[c_index] & 0xff) << stari_dio;
     }
 
-    bit_ctr += 8;
+    bit_ctr = (bit_ctr + 8) % 26;
   }
 
   return 0;
