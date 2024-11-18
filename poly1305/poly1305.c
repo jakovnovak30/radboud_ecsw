@@ -145,24 +145,30 @@ int crypto_onetimeauth_poly1305(unsigned char *out,const unsigned char *in,unsig
 
     bit_ctr += 8;
   }
+
   // postavi zadnji bajt na nulu
-  c[4] &= (1 << 18) - 1;
+  c[4] &= ((1 << 18) - 1);
   add(h,c);
+
   // convert result to output
   bit_ctr = 0;
   c_index = 0;
   for (j = 0;j < 16;++j) {
     if (bit_ctr + 8 <= 26) {
       out[j] = (h[c_index] >> bit_ctr) & 0xff;
+
+      bit_ctr += 8;
     }
     else {
       short stari_dio = 26 - bit_ctr;
+      short novi_dio = 8 - stari_dio;
 
       out[j]  = (h[c_index++] >> bit_ctr) & ((1 << stari_dio) - 1);
-      out[j] += (h[c_index] & 0xff) << stari_dio;
+      out[j] +=  (h[c_index] & ((1 << novi_dio) - 1)) << stari_dio;
+
+      bit_ctr = novi_dio;
     }
 
-    bit_ctr = (bit_ctr + 8) % 26;
   }
 
   return 0;
