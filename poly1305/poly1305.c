@@ -34,11 +34,6 @@ static void squeeze(uint64_t h[5])
 static const unsigned int minusp[5] = {
   5, 0, 0, 0, (((1 << 6) - 1) << 26)
 };
-/*
-static const unsigned int minusp[17] = {
-  5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 252
-} ;
-*/
 
 // converts the value to the cannonical representation (positive number)
 static void freeze(unsigned int h[5])
@@ -71,24 +66,6 @@ static void mulmod(unsigned int h[5], const unsigned int r[5])
   for (i = 0;i < 5;++i) h[i] = hr[i];
 }
 
-/*
-00: 9b
-01: 38
-02: 7d
-03: 70
-04: 2e
-05: dc
-06: 75
-07: 37
-08: 5e
-09: 5
-10: 57
-11: fd
-12: 5d
-13: b
-14: b4
-15: 54
- */
 int crypto_onetimeauth_poly1305(unsigned char *out,const unsigned char *in,unsigned long long inlen,const unsigned char *k)
 {
   unsigned int j;
