@@ -15,6 +15,15 @@ static void add(unsigned int h[5],const unsigned int c[5])
   for (j = 0;j < 5;++j) { u += h[j] + c[j]; h[j] = u & ((1 << 26) - 1); u >>= 26; }
 }
 
+static void add_overflow(unsigned int h[5], const unsigned int c[5])
+{
+  unsigned int j;
+  unsigned int u;
+  u = 0;
+  for (j = 0;j < 4;++j) { u += h[j] + c[j]; h[j] = u & ((1 << 26) - 1); u >>= 26; }
+  u += h[4] + c[4]; h[4] = u & ((1 << 27) - 1);
+}
+
 // funkcija uzima nas 130-bitni broj i vraća taj broj modulo 2^130 - 5
 static void squeeze(uint64_t h[5])
 {
@@ -25,12 +34,13 @@ static void squeeze(uint64_t h[5])
   for (j = 0;j < 5;++j) { u += h[j]; h[j] = u & ((1 << 26) - 1); u >>= 26; }
   // uzmi preljev i pomnoži ga s 5
   u = 5 * u;
-  for (j = 0;j < 5;++j) { u += h[j]; h[j] = u & ((1 << 26) - 1); u >>= 26; }
+  for (j = 0;j < 4;++j) { u += h[j]; h[j] = u & ((1 << 26) - 1); u >>= 26; }
+  u += h[4]; h[4] = u;
 }
 
 // 2^130 - 5
 static const unsigned int minusp[5] = {
-  5, 0, 0, 0, (1 << 25)
+  5, 0, 0, 0, (1 << 26)
 };
 /*
 static const unsigned int minusp[17] = {
@@ -45,8 +55,8 @@ static void freeze(unsigned int h[5])
   unsigned int j;
   unsigned int negative;
   for (j = 0;j < 5;++j) horig[j] = h[j];
-  add(h,minusp);
-  negative = -(h[4] >> 25);
+  add_overflow(h,minusp);
+  negative = -(h[4] >> 26);
   for (j = 0;j < 5;++j) h[j] ^= negative & (horig[j] ^ h[j]);
 }
 
@@ -70,22 +80,22 @@ static void mulmod(unsigned int h[5], const unsigned int r[5])
 }
 
 /*
-00: 3b
-01: 36
-02: 34
-03: 41
-04: ba
-05: 39
-06: 93
-07: 39
-08: 86
-09: 75
-10: fd
-11: 18
-12: a7
-13: 5a
-14: 25
-15: c5
+00: 9b
+01: 38
+02: 7d
+03: 70
+04: 2e
+05: dc
+06: 75
+07: 37
+08: 5e
+09: 5
+10: 57
+11: fd
+12: 5d
+13: b
+14: b4
+15: 54
  */
 int crypto_onetimeauth_poly1305(unsigned char *out,const unsigned char *in,unsigned long long inlen,const unsigned char *k)
 {
@@ -120,8 +130,10 @@ int crypto_onetimeauth_poly1305(unsigned char *out,const unsigned char *in,unsig
 
   for (j = 0;j < 5;++j) h[j] = 0;
 
+  short iter_limit = 3;
   while (inlen > 0) {
     for (j = 0;j < 5;++j) c[j] = 0;
+    //for (j = 0;j < 5;++j) h[j] = 0;
 
     // copies byte by byte with radix 2^26 adjustments
     short bit_ctr = 0;
@@ -144,7 +156,13 @@ int crypto_onetimeauth_poly1305(unsigned char *out,const unsigned char *in,unsig
 
     in += j; inlen -= j;
     add(h,c);
-    mulmod(h,r);
+    //mulmod(h,r);
+
+    /*
+    if (iter_limit == 0)
+      break;
+    iter_limit--;
+    */
   }
 
   freeze(h);
