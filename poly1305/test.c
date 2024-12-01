@@ -67,7 +67,7 @@ int main(void)
       send_USART_str((unsigned char*)"Test failed!\n");
       return -1;
     }
-  }     
+  }
 
   send_USART_str((unsigned char*)"Test successful!\n");
 

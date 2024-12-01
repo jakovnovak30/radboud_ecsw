@@ -18,12 +18,4 @@ poly1305test.elf: poly1305.o poly1305.h test.o $(OBJS) $(LDSCRIPT)
 poly1305speed.elf: poly1305.o poly1305.h speed.o $(OBJS) $(LDSCRIPT)
 		$(LD) -o $@ speed.o poly1305.o $(OBJS) $(LDFLAGS) -l$(LIBNAME)
 
-poly1305test_old.elf: poly1305_old.o poly1305.h test.o $(OBJS) $(LDSCRIPT)
-		$(LD) -o $@ test.o poly1305_old.o $(OBJS) $(LDFLAGS) -l$(LIBNAME)
-
-poly1305speed_old.elf: poly1305_old.o poly1305.h speed.o $(OBJS) $(LDSCRIPT)
-		$(LD) -o $@ speed.o poly1305_old.o $(OBJS) $(LDFLAGS) -l$(LIBNAME)
-
 include ../common/make.mk
-
-

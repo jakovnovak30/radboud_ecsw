@@ -122,12 +122,9 @@ int crypto_onetimeauth_poly1305(unsigned char *out,const unsigned char *in,unsig
 
   for (j = 0;j < 5;++j) h[j] = 0;
 
-  // NOTE: probaj baze menjati (8 bitovna verzija koristi 136, a ne 130 bitova na kraju!)
   short iter_limit = 3;
   while (inlen > 0) {
     for (j = 0;j < 5;++j) c[j] = 0;
-    //for (j = 0;j < 5;++j) h[j] = 0;
-
     // copies byte by byte with radix 2^26 adjustments
     short bit_ctr = 0;
     short c_index = 0;
@@ -137,7 +134,6 @@ int crypto_onetimeauth_poly1305(unsigned char *out,const unsigned char *in,unsig
       }
       else {
         short stari_dio = 26 - bit_ctr;
-        short novi_dio = 8 - stari_dio;
 
         c[c_index++] += (in[j] << bit_ctr) & ((1 << 26) - 1);
         c[c_index]   += (in[j] >> stari_dio);
@@ -150,43 +146,36 @@ int crypto_onetimeauth_poly1305(unsigned char *out,const unsigned char *in,unsig
     in += j; inlen -= j;
     add(h,c);
     mulmod(h,r);
-
-    /*
-    if (iter_limit == 0)
-      break;
-    iter_limit--;
-    */
   }
 
   freeze(h);
 
-  /*
   // for (j = 0;j < 16;++j) c[j] = k[j + 16];
   short bit_ctr = 0;
   short c_index = 0;
+
+  for (j = 0;j < 5;++j) c[j] = 0;
   for (j = 0;j < 16;++j) {
-    if(bit_ctr + 8 <= 26) {
+    if(bit_ctr + 8 < 26) {
       c[c_index] += (k[j + 16] << bit_ctr);
     }
     else {
       short stari_dio = 26 - bit_ctr;
-      bit_ctr -= 26;
 
-      c[c_index++] += (k[j + 16] << bit_ctr) & ((1 << stari_dio) - 1);
+      c[c_index++] += (k[j + 16] << bit_ctr) & ((1 << 26) - 1);
       c[c_index]   += (k[j + 16] >> stari_dio);
     }
 
-    bit_ctr += 8;
+    bit_ctr = (bit_ctr + 8) % 26;
   }
 
   // postavi zadnji bajt na nulu
   c[4] &= ((1 << 18) - 1);
   add(h,c);
-  */
 
   // convert result to output
-  short bit_ctr = 0;
-  short c_index = 0;
+  bit_ctr = 0;
+  c_index = 0;
   for (j = 0;j < 16;++j) {
     if (bit_ctr + 8 <= 26) {
       out[j] = (h[c_index] >> bit_ctr) & 0xff;
