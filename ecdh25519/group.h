@@ -14,6 +14,7 @@ typedef struct
 } group_ge;
 
 extern const group_ge group_ge_base;
+extern const group_ge group_ge_neutral;
 
 int  group_ge_unpack(group_ge *r, const unsigned char x[GROUP_GE_PACKEDBYTES]);
 void group_ge_pack(unsigned char r[GROUP_GE_PACKEDBYTES], const group_ge *x);
