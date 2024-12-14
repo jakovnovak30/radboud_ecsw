@@ -1,3 +1,4 @@
+#include "fe25519.h"
 #include "group.h"
 #include "smult.h"
 
@@ -24,9 +25,8 @@ int crypto_scalarmult(unsigned char *ss, const unsigned char *sk, const unsigned
     for(;j>=0;j--)
     {
       group_ge_double(&k, &k);
-      if((t[i] >> j) & 1) {
-        group_ge_add(&k, &k, &p);
-      }
+      
+      group_ge_cadd(&k, &k, &p, (t[i] >> j) & 1);
     }
     j = 7;
   }

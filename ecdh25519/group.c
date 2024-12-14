@@ -261,6 +261,22 @@ void group_ge_add(group_ge *r, const group_ge *x, const group_ge *y)
   p1p1_to_p3(r,&t);
 }
 
+// conditional add
+void group_ge_cadd(group_ge *r, const group_ge *x, const group_ge *y, unsigned char cond)
+{
+  // either neutral element or number we need to add
+  group_ge temp_add = {{{0}},
+                       {{1}},
+                       {{1}},
+                       {{0}}};
+  fe25519_cmov(&temp_add.x, &y->x, cond);
+  fe25519_cmov(&temp_add.y, &y->y, cond);
+  fe25519_cmov(&temp_add.z, &y->z, cond);
+  fe25519_cmov(&temp_add.t, &y->t, cond);
+
+  group_ge_add(r, x, &temp_add);
+}
+
 void group_ge_double(group_ge *r, const group_ge *x)
 {
   ge25519_p1p1 t;
