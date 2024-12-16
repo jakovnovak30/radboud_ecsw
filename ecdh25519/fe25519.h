@@ -62,4 +62,6 @@ void fe25519_invsqrt(fe25519 *r, const fe25519 *x);
 
 void fe25519_print(const fe25519 *x);
 
+uint32_t equal(uint32_t a,uint32_t b);
+
 #endif

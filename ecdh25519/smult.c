@@ -2,7 +2,25 @@
 #include "group.h"
 #include "smult.h"
 
-// TODO: optimize field arithmetic, optimize group arithmetic
+group_ge get_index(group_ge T[16], int index) {
+  group_ge out;
+  int i,j;
+
+  for(i=0;i < 16;++i) {
+    uint32_t mask = - equal(i, index);
+
+    for(j=0;j<32;++j) {
+      out.x.v[j] = (mask & T[i].x.v[j]) ^ (~mask & out.x.v[j]);
+      out.y.v[j] = (mask & T[i].y.v[j]) ^ (~mask & out.y.v[j]);
+      out.z.v[j] = (mask & T[i].z.v[j]) ^ (~mask & out.z.v[j]);
+      out.t.v[j] = (mask & T[i].t.v[j]) ^ (~mask & out.t.v[j]);
+    }
+  }
+
+  return out;
+}
+
+// optimizations: fixed window scalar mult + custom squaring function
 int crypto_scalarmult(unsigned char *ss, const unsigned char *sk, const unsigned char *pk)
 {
   group_ge p, k;
@@ -28,8 +46,9 @@ int crypto_scalarmult(unsigned char *ss, const unsigned char *sk, const unsigned
     group_ge_add(T + i, T + i-1, &p);
   }
 
-  k = T[t[63]];
+  k = get_index(T, t[63]);
   // WINDOW_SIZE = 4, 64 * 4 = 32 * 8
+  group_ge add_val;
   for(i=62;i>=0;--i)
   {
     for(j=1;j<=4;++j)
@@ -37,8 +56,9 @@ int crypto_scalarmult(unsigned char *ss, const unsigned char *sk, const unsigned
       group_ge_double(&k, &k);
     }
 
-    // TODO: constant time indexing
-    group_ge_add(&k, &k, &T[t[i]]);
+    // constant time indexing
+    add_val = get_index(T, t[i]);
+    group_ge_add(&k, &k, &add_val);
   }
 
   group_ge_pack(ss, &k);
