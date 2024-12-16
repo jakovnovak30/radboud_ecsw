@@ -42,12 +42,12 @@ static uint32_t ge(uint32_t a,uint32_t b) /* 16-bit inputs */
   return x;
 }
 
-static uint32_t times19(uint32_t a)
+static inline uint32_t times19(uint32_t a)
 {
   return (a << 4) + (a << 1) + a;
 }
 
-static uint32_t times38(uint32_t a)
+static inline uint32_t times38(uint32_t a)
 {
   return (a << 5) + (a << 2) + (a << 1);
 }
@@ -224,14 +224,9 @@ void fe25519_square(fe25519 *r, const fe25519 *x)
   uint32_t t[63];
   for(i=0;i<63;++i) t[i] = 0;
 
-  // precompute doubles
-  uint32_t _2x[32];
-  for(i=0;i<32;++i)
-    _2x[i] = 2*x->v[i];
-
   for(i=0;i<32;++i) {
     for(j=i+1;j<32;++j)
-      t[i+j] += _2x[i] * x->v[j];
+      t[i+j] += (x->v[i] << 1) * x->v[j];
     t[2*i] += x->v[i] * x->v[i];
   }
 
