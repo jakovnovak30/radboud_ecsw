@@ -20,7 +20,7 @@ group_ge get_index(group_ge T[16], int index) {
   return out;
 }
 
-// optimizations: fixed window scalar mult + custom squaring function
+// optimizations: fixed window scalar mult + custom squaring function + loop unrolling added to CFLAGS
 int crypto_scalarmult(unsigned char *ss, const unsigned char *sk, const unsigned char *pk)
 {
   group_ge p, k;
