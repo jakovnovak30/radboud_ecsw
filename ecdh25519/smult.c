@@ -37,19 +37,17 @@ int crypto_scalarmult(unsigned char *ss, const unsigned char *sk, const unsigned
   // montgomery scalar mult
   // algorithm: constant time montgomery ladder: https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication#Constant_time_Montgomery_ladder
   fe25519 _121665 = fe25519_zero;
-  _121665.v[0] = 41; _121665.v[1] = 0xDB; _121665.v[2] = 0x1;
+  _121665.v[0] = 0x41; _121665.v[1] = 0xDB; _121665.v[2] = 0x1;
 
-  // change point back to edwards representation
-  // (u, v) |-> (x, y) = (u/v, (u-1)/(u+1))
   // https://en.wikipedia.org/wiki/Montgomery_curve#Equivalence_with_twisted_Edwards_curves
   //
   fe25519 a, b, c, d, e, f;
-  for (i = 0; i < 16; ++i) {
+  for (i = 0; i < 32; ++i) {
       b.v[i] = k.x.v[i];
       d.v[i] = a.v[i] = c.v[i] = 0;
     }
     a.v[0] = d.v[0] = 1;
-    for (i = 254; i >= 0; --i) {
+  for (i = 254; i >= 0; --i) {
     uint32_t bit = (t[i >> 3] >> (i & 7)) & 1;
     fe25519_swap(&a, &b, bit);
     fe25519_swap(&c, &d, bit);
@@ -78,13 +76,15 @@ int crypto_scalarmult(unsigned char *ss, const unsigned char *sk, const unsigned
   fe25519_mul(&a, &a, &c);
 
   // a == u
-  // v^2 == x^3 + Ax^2 + x
+  // v^2 == u^3 + Au^2 + u
   // A = 486662 = 76D06
   fe25519 v_sqr = fe25519_zero;
   fe25519 x_cubed;
   fe25519 A = fe25519_zero;
-  A.v[0] = 6; A.v[1] = 0x6D; A.v[2] = 7;
+  A.v[0] = 0x06; A.v[1] = 0x6D; A.v[2] = 0x07;
 
+  // change point back to edwards representation
+  // (u, v) |-> (x, y) = (u/v, (u-1)/(u+1))
   fe25519_mul(&v_sqr, &a, &a); // x^2
   fe25519_mul(&x_cubed, &a, &v_sqr); // x^3
   fe25519_mul(&v_sqr, &v_sqr, &A); // Ax^2
@@ -92,17 +92,17 @@ int crypto_scalarmult(unsigned char *ss, const unsigned char *sk, const unsigned
   fe25519_add(&v_sqr, &v_sqr, &x_cubed); // x^3 + Ax^2 + x
 
   fe25519 inv_v;
-  //fe25519_invsqrt(&inv_v, &v_sqr); // inv_v <- 1 / sqrt(v_sqr)
+  fe25519_invsqrt(&inv_v, &v_sqr); // inv_v <- 1 / sqrt(v_sqr) = 1/v
   fe25519_sub(&numerator, &a, &fe25519_one); // num <- u - 1
-  fe25519_sub(&denominator, &a, &fe25519_one); // den <- u + 1
+  fe25519_add(&denominator, &a, &fe25519_one); // den <- u + 1
   // k.x <- u / v
   fe25519_mul(&k.x, &a, &inv_v);
   // k.y <- (u-1)/(u+1)
-  //fe25519_invert(&denominator, &denominator);
+  fe25519_invert(&denominator, &denominator);
   fe25519_mul(&k.y, &numerator, &denominator);
 
-  k.z = fe25519_one;
-  k.t = fe25519_one;
+  //k.t = fe25519_one;
+  //k.z = fe25519_one;
 
   group_ge_pack(ss, &k);
   return 0;
