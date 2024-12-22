@@ -1,5 +1,4 @@
 #include <stdint.h>
-#include <stdio.h>
 #include "fe25519.h"
 
 #if 0
@@ -168,6 +167,17 @@ void fe25519_cmov(fe25519 *r, const fe25519 *x, unsigned char b)
   }
 }
 
+// TODO: usporedi brzinu ovoga i klasičnog pristupa
+void fe25519_swap(fe25519 *x, fe25519 *y, uint32_t bit) {
+  int i;
+  bit = -bit; // so we can use it as a mask
+  for(i=0;i<32;++i) {
+    x->v[i] = (x->v[i] ^ y->v[i] & bit) ^ (x->v[i] & ~bit);
+    y->v[i] = (x->v[i] ^ y->v[i] & bit) ^ (y->v[i] & ~bit);
+    x->v[i] = (x->v[i] ^ y->v[i] & bit) ^ (x->v[i] & ~bit);
+  }
+}
+
 void fe25519_neg(fe25519 *r, const fe25519 *x)
 {
   fe25519 t = fe25519_zero;
@@ -237,7 +247,6 @@ void fe25519_square(fe25519 *r, const fe25519 *x)
   reduce_mul(r);
 }
 
-#if 0
 void fe25519_invert(fe25519 *r, const fe25519 *x)
 {
 	fe25519 z2;
@@ -304,7 +313,6 @@ void fe25519_invert(fe25519 *r, const fe25519 *x)
 	/* 2^255 - 2^5 */ fe25519_square(&t1,&t0);
 	/* 2^255 - 21 */ fe25519_mul(r,&t1,&z11);
 }
-#endif
 
 void fe25519_pow2523(fe25519 *r, const fe25519 *x)
 {
